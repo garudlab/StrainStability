@@ -18,7 +18,7 @@ cohort = state_vars["DATA_COHORT"]
 metadata_directory = os.path.expanduser("~/strain_stability_revisions/strainstability/metadata")
 
 ### reads state as declared, chooses which set of meta-parameters to use for scripts
-elif cohort == "Poyet" and db_type == "standard":
+if cohort == "Poyet" and db_type == "standard":
     data_directory = "/u/scratch/r/rwolff/Poyet_midas_output/merged_midas_output/%s/" % host
     midas_files_directory = "/u/scratch/r/rwolff/Poyet_midas_output/midas_files/%s/" % host
     midas_directory = "/u/project/ngarud/Garud_lab/midas_db_v1.2/"  
