@@ -1,0 +1,9 @@
+Alistipes_onderdonkii_55464,0.613135418929815
+Alistipes_putredinis_61533,0.13963337813708854
+Bacteroides_cellulosilyticus_58046,0.0933806703204573
+Bacteroides_massiliensis_44749,0.1070121198764887
+Bacteroides_ovatus_58035,0.4024028843489297
+Bacteroides_thetaiotaomicron_56941,0.2966934490560157
+Bacteroides_uniformis_57318,5.397395770369258e-06
+Bacteroides_vulgatus_57955,7.091983984897228e-05
+Eubacterium_rectale_56927,0.376765922998359

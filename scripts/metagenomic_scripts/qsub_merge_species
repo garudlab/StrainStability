@@ -1,0 +1,30 @@
+#!/bin/bash
+#$ -N merge_MIDAS_species
+#$ -e /u/home/r/rwolff/strain_stability_revisions/qsub_output
+#$ -o /u/home/r/rwolff/strain_stability_revisions/qsub_output
+#$ -cwd
+#$ -r y
+#$ -j y
+#$ -l highp
+#$ -l h_data=10G
+#$ -l time=23:00:00
+#$ -t 1:4
+
+. /u/local/Modules/default/init/modules.sh
+
+module load singularity
+
+export MIDAS_DB=/u/project/ngarud/Garud_lab/midas_db_v1.2
+
+hosts=( null am an ao ae )
+H=${hosts[$SGE_TASK_ID]}
+
+OUTDIR=/u/scratch/r/rwolff/Poyet_midas_output/merged_midas_output/${host}
+
+mkdir -p $OUTDIR/species
+
+singularity exec $H2_CONTAINER_LOC/MIDAS-mod.sif merge_midas.py species $OUTDIR/species -i /u/scratch/r/rwolff/Poyet_midas_output/midas_files/${host} -t dir > $OUTDIR/species/species.log
+
+
+
+

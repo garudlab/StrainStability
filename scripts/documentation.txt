@@ -1,0 +1,153 @@
+############################################################################################################
+# January 2023
+# This is a documentation/readme file for where all the scripts live and the order of analyses performed.
+############################################################################################################                       
+
+#######################
+# BIO-ML data download #
+#######################
+
+#### fastq files are downloaded from SRA and converted to fastq format
+
+qsub metagenomic_scripts/qsub_download_sra_convert_sra_to_fastq
+
+#### fastq files corresponding to samples with the same collection date are merged
+
+python metagenomic_scripts/get_repeat_date_samples.py
+
+#################
+# Running MIDAS #
+#################
+
+#### MIDAS was run on the UCLA Hoffman2 cluster 
+#### using the MIDAS-mod docker image
+
+#### now, process fastq's through MIDAS
+#### first, estimate species abundances
+
+qsub metagenomic_scripts/qsub_MIDAS_species am
+qsub metagenomic_scripts/qsub_MIDAS_species ao
+qsub metagenomic_scripts/qsub_MIDAS_species an
+qsub metagenomic_scripts/qsub_MIDAS_species ae
+
+#### merge species abundances 
+
+qsub metagenomic_scripts/qsub_merge_species
+
+#### create species unions for each sample
+#### species unions are the sets of species with coverage > 3 in at least 1 sample
+#### species union is used to create a standard reference panel across all longitudinal samples
+#### by holding the reference panel to which reads are aligned constant, we guard against read stealing/donating
+
+python make_species_union.py am
+python make_species_union.py ao
+python make_species_union.py an
+python make_species_union.py ae
+
+#### now, call SNPs and pan-genome content
+qsub metagenomic_scripts/qsub_MIDAS_snps_genes am 
+qsub metagenomic_scripts/qsub_MIDAS_snps_genes ao 
+qsub metagenomic_scripts/qsub_MIDAS_snps_genes an 
+qsub metagenomic_scripts/qsub_MIDAS_snps_genes ae
+
+#### merge snv and gene content
+
+qsub metagenomic_scripts/qsub_merge_snps_genes
+
+#### make species_snps files (lists of species for downstream processes)
+
+for host in am an ae ao; do
+    base_dir=/u/scratch/r/rwolff/Poyet_midas_output/merged_midas_output/${host}/snps
+    ls $base_dir -I species_snps.txt > $base_dir/species_snps.txt
+done
+
+#### zip files
+qsub metagenomic_scripts/bzip_species am
+qsub metagenomic_scripts/bzip_species ao
+qsub metagenomic_scripts/bzip_species an
+qsub metagenomic_scripts/bzip_species ae
+
+qsub metagenomic_scripts/bzip_snps_genes am 
+qsub metagenomic_scripts/bzip_snps_genes ao 
+qsub metagenomic_scripts/bzip_snps_genes an
+qsub metagenomic_scripts/bzip_snps_genes ae
+
+#### call core genes
+
+qsub qsub_scripts/qsub_core_genes
+
+###################
+# Finding strains #
+###################
+
+#### run custom post-processing scripts, including creating strain SNV input
+
+qsub scripts/qsub_scripts/qsub_postproc am
+qsub scripts/qsub_scripts/qsub_postproc ao
+qsub scripts/qsub_scripts/qsub_postproc an
+qsub scripts/qsub_scripts/qsub_postproc ae
+
+#### cluster strains
+
+qsub scripts/qsub_scripts/qsub_cluster_strains am
+qsub scripts/qsub_scripts/qsub_cluster_strains ao
+qsub scripts/qsub_scripts/qsub_cluster_strains an
+qsub scripts/qsub_scripts/qsub_cluster_strains ae
+
+#### create strain abundance trajectory files
+
+qsub scripts/qsub_scripts/qsub_write_strain_df
+
+#############
+# SLM tests #
+#############
+
+#### run chi-sq test
+
+qsub scripts/qsub_scripts/qsub_chisq am
+qsub scripts/qsub_scripts/qsub_chisq ao
+qsub scripts/qsub_scripts/qsub_chisq an
+qsub scripts/qsub_scripts/qsub_chisq ae
+
+#### create p-value heatmap
+
+python scripts/plot_figure_2.py
+
+####################################
+# Intra-specific genetic diversity #
+####################################
+
+#### calculate pi: Poyet
+
+qsub scripts/qsub_scripts/qsub_calculate_pi Poyet am
+qsub scripts/qsub_scripts/qsub_calculate_pi Poyet ao
+qsub scripts/qsub_scripts/qsub_calculate_pi Poyet an
+qsub scripts/qsub_scripts/qsub_calculate_pi Poyet ae
+
+#### calculate pi: HMP
+
+qsub scripts/qsub_scripts/qsub_calculate_pi HMP HMP
+
+#### calculate fst_prime trajectories
+
+python scripts/create_fst_prime_trajectories.py
+
+#### run AFD test on Fst' trajectories
+
+python scripts/species_pvalues.py
+
+#### Now that strain clusters have been found, and both the SLM and AFD tests have been performed,
+#### we have all the necessary information to plot figure 1, as well as supplemental versions of 
+#### figure 1 for all species. The two strains used for Fig. 1 are P. vulgatus in am, strain C, 
+#### and F. praunsitzii in ao, strain B. NOTE: taxonomic name of P. vulgatus in MIDAS was 
+#### Bacteroides vulgatus, but has been updated to Phocaeicola vulgatus in accordance w/ Garcia-Lopez (2019)
+#### in the manuscript. However, internal calls are still made to Bacteroides vulgatus. 
+
+python scripts/plot_figure_1.py am Bacteroides_vulgatus_57955 C
+python scripts/plot_figure_1.py ao Faecalibacterium_prausnitzii_61481 B
+
+################
+# Macroecology #
+################
+
+python scripts/plot_figure_3.py
